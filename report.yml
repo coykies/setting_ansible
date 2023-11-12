@@ -1,31 +1,53 @@
 ---
 - name: Parse report logs
-  hosts: all
+  hosts: phy
   tasks:
-#    - name: install sosreport
-#      shell: yum install -y sos
     - name: mkdir report
       file:
-        path: /var/tmp/report
+        path: /tmp/report
         state: directory
-    - name: Execute ifconfig
-      shell: ifconfig -a >> /var/tmp/report/netcollect.txt
+    # - name: Execute ifconfig
+    #   shell: ifconfig -a > /tmp/report/netcollect.txt
     - name: Generate sosreport
-      shell: sosreport -e logs --all-logs --tmp-dir /var/tmp/report
-    - fetch:
-        src: /var/tmp/netcollect.txt
-        dest: /var/tmp/report/netcollect{{ inventory_hostname }}.txt
-    - fetch:
-        src: /var/tmp/report/sosreport*
-        dest: /var/tmp/report/sosreport{{ inventory_hostname }}.tar.xz
-#    - name: Compress archive log
-#      community.general.archive:
-#        path:
-#          - /var/tmp/report/netcollect{{ inventory_hostname }}.txt
-#         - /var/tmp/report/sosreport{{ inventory_hostname }}*.tar.xz
-#       dest: /var/tmp/report{{ inventory_hostname}}.zip
-#        format: zip
+      shell: sosreport -e logs --all-logs --batch --tmp-dir /tmp/report
+    - name: find sosreport
+      find:
+        paths: /tmp/report
+        recurse: no
+        patterns: "sos*"
+      register: file_to_copy
+    - name: Copy sosreport
+      fetch:
+        src: "{{ item.path }}"
+        dest: report/
+        flat: yes
+      with_items: "{{ file_to_copy.files }}"
+
+
+    # - name: collect ifconfig
+    #   shell: 'echo "{{ inventory_hostname }}" && ifconfig -a'
+    #   register: ifconfig
+    #
+    # - name: append ifconfig
+    #   lineinfile:
+    #     dest: report/ifconfig.txt
+    #     line: "{{ ifconfig }}"
+    #     insertafter: EOF
+    #   delegate_to: localhost
+    #
+    # - name: collect serial
+    #   shell: 'echo "{{ inventory_hostname }}" && lshw -C system |grep serial'
+    #   register: serial
+    #
+    # - name: append serial
+    #   lineinfile:
+    #     dest: report/serial.txt
+    #     line: "{{ serial }}"
+    #     insertafter: EOF
+    #   delegate_to: localhost
+
+
     - name: Remove report log
       file:
-         path: /var/tmp/report
+         path: /tmp/report
          state: absent
