@@ -1,0 +1,31 @@
+---
+- name: Parse report logs
+  hosts: all
+  tasks:
+#    - name: install sosreport
+#      shell: yum install -y sos
+    - name: mkdir report
+      file:
+        path: /var/tmp/report
+        state: directory
+    - name: Execute ifconfig
+      shell: ifconfig -a >> /var/tmp/report/netcollect.txt
+    - name: Generate sosreport
+      shell: sosreport -e logs --all-logs --tmp-dir /var/tmp/report
+    - fetch:
+        src: /var/tmp/netcollect.txt
+        dest: /var/tmp/report/netcollect{{ inventory_hostname }}.txt
+    - fetch:
+        src: /var/tmp/report/sosreport*
+        dest: /var/tmp/report/sosreport{{ inventory_hostname }}.tar.xz
+#    - name: Compress archive log
+#      community.general.archive:
+#        path:
+#          - /var/tmp/report/netcollect{{ inventory_hostname }}.txt
+#         - /var/tmp/report/sosreport{{ inventory_hostname }}*.tar.xz
+#       dest: /var/tmp/report{{ inventory_hostname}}.zip
+#        format: zip
+    - name: Remove report log
+      file:
+         path: /var/tmp/report
+         state: absent
