@@ -1,0 +1,1 @@
+Setting hosts on RedHatEnterprise Linux for using in PROD/PREDPROD
