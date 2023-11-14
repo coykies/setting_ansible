@@ -1,0 +1,68 @@
+---
+- name: install dependencies
+  hosts: all
+  tasks:
+    - name: Remove docker if installed from CentOS repo
+      yum:
+          name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-logrotate
+          - docker-engine
+          state: removed
+    - name: install docker dep
+      yum:
+          name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - curl
+          - lvm2
+          state: present
+    - name: Import a key from a url
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://download.docker.com/linux/rhel/gpg
+    - name: add docker repo
+      get_url:
+        url: https://download.docker.com/linux/rhel/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+      become: yes
+    - name: yum clean all
+      command: yum repolist
+    - name: install docker
+      yum: 
+          name:
+          - docker-ce
+          - docker-ce-cli
+          - containered.io
+          - docker-buildx-plugin
+    - name: upgrade all packages
+      yum: name=* state=latest
+    - name: check docker is active
+      service: 
+          name: docker
+          state: started
+          enabled: yes
+    - name: ensure group docker exists
+      ansible.builtin.group:
+          name: docker
+          state: present
+    - name: adding sprytkov to docker group
+      user:
+          name: sprytkov
+          groups: docker
+          append: yes
+    - name: install docker-compose
+      get_url:
+          url: https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-linux-x86_64
+          dest: /usr/local/bin/docker-compose
+          mode: 'u+x,g+x'
+    - name: change file ownership, group and premissions
+      ansible.builtin.file: 
+          path: /usr/local/bin/docker-compose
+          owner: sprytkov
+          group: sprytkov  
